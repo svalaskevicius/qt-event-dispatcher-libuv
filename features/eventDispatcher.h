@@ -10,7 +10,7 @@
 #include <functional>
 #include <thread>
 
-#include "../src/runner/eventdispatcherlibuv.h"
+#include "src/eventdispatcherlibuv.h"
 
 namespace {
 

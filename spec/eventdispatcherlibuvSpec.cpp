@@ -1,6 +1,6 @@
 #include "test_setup.h"
 
-#include "../src/runner/eventdispatcherlibuv_p.h"
+#include "eventdispatcherlibuv_p.h"
 
 #include <QSocketNotifier>
 
