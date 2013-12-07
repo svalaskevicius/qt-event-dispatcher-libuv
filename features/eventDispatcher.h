@@ -3,7 +3,7 @@
 
 #include <QTcpServer>
 #include <QTcpSocket>
-#include <QCoreApplication>
+#include <QApplication>
 #include <QTimer>
 
 #include <chrono>
@@ -132,6 +132,32 @@ TEST_CASE("libuv based event dispatcher") {
         });
         app.processEvents();
         alarm.join();
+    }
+
+    SECTION("it supports finalising the app when libuv finishes") {
+        using namespace std::chrono;
+        steady_clock::time_point started = steady_clock::now();
+        ev_dispatcher->setFinalise();
+        app.exec();
+        REQUIRE (duration_cast<seconds>(steady_clock::now()-started).count() < 1);
+    }
+}
+
+
+TEST_CASE("libuv based event dispatcher finalisation for qt GUI app") {
+
+    auto ev_dispatcher = new qtjs::EventDispatcherLibUv();
+    QCoreApplication::setEventDispatcher(ev_dispatcher);
+    int argc = 0;
+    char *argv[1] = {0};
+    QApplication app(argc, argv, 0);
+
+    SECTION("it supports finalising the app when libuv finishes") {
+        using namespace std::chrono;
+        steady_clock::time_point started = steady_clock::now();
+        ev_dispatcher->setFinalise();
+        app.exec();
+        REQUIRE (duration_cast<seconds>(steady_clock::now()-started).count() < 1);
     }
 }
 

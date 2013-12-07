@@ -12,6 +12,19 @@
 
 extern uint qGlobalPostedEventsCount(); // from qapplication.cpp
 
+namespace
+{
+
+void flushUvHandles()
+{
+    uv_walk(uv_default_loop(), [](uv_handle_t* handle, void* arg){
+        if (uv_has_ref(handle)) {
+            uv_unref(handle);
+        }
+    }, 0);
+}
+
+}
 
 namespace qtjs {
 
@@ -21,7 +34,8 @@ EventDispatcherLibUv::EventDispatcherLibUv(QObject *parent) :
     socketNotifier(new EventDispatcherLibUvSocketNotifier()),
     timerNotifier(new EventDispatcherLibUvTimerNotifier()),
     timerTracker(new EventDispatcherLibUvTimerTracker()),
-    asyncChannel(new EventDispatcherLibUvAsyncChannel())
+    asyncChannel(new EventDispatcherLibUvAsyncChannel()),
+    finalise(false), flushHandles(false)
 {
 }
 
@@ -43,12 +57,20 @@ void EventDispatcherLibUv::flush(void)
 
 bool EventDispatcherLibUv::processEvents(QEventLoop::ProcessEventsFlags flags)
 {
+    if (flushHandles) {
+        flushUvHandles();
+        flushHandles = false;
+    }
     emit awake();
     QCoreApplication::sendPostedEvents();
     QWindowSystemInterface::sendWindowSystemEvents(flags);
     emit aboutToBlock();
 
-    return uv_run(uv_default_loop(), UV_RUN_ONCE);
+    int leftHandles = uv_run(uv_default_loop(), UV_RUN_ONCE);
+    if (!leftHandles && finalise) {
+        qApp->exit(0);
+    }
+    return leftHandles;
 }
 
 bool EventDispatcherLibUv::hasPendingEvents(void)
@@ -105,5 +127,12 @@ int EventDispatcherLibUv::remainingTime(int timerId)
 {
     return timerTracker->remainingTime(timerId);
 }
+
+void EventDispatcherLibUv::setFinalise()
+{
+    finalise = true;
+    flushHandles = true;
+}
+
 
 }

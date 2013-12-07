@@ -41,7 +41,9 @@ public:
     virtual QList<QAbstractEventDispatcher::TimerInfo> registeredTimers(QObject* object) const;
     virtual int remainingTime(int timerId);
 
+    void setFinalise();
 private:
+    bool finalise, flushHandles;
     Q_DISABLE_COPY(EventDispatcherLibUv)
 };
 
