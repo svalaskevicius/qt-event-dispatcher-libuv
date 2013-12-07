@@ -43,7 +43,7 @@ public:
 
     void setFinalise();
 private:
-    bool finalise, flushHandles;
+    bool finalise;
     Q_DISABLE_COPY(EventDispatcherLibUv)
 };
 

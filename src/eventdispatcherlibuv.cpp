@@ -35,7 +35,7 @@ EventDispatcherLibUv::EventDispatcherLibUv(QObject *parent) :
     timerNotifier(new EventDispatcherLibUvTimerNotifier()),
     timerTracker(new EventDispatcherLibUvTimerTracker()),
     asyncChannel(new EventDispatcherLibUvAsyncChannel()),
-    finalise(false), flushHandles(false)
+    finalise(false)
 {
 }
 
@@ -57,10 +57,6 @@ void EventDispatcherLibUv::flush(void)
 
 bool EventDispatcherLibUv::processEvents(QEventLoop::ProcessEventsFlags flags)
 {
-    if (flushHandles) {
-        flushUvHandles();
-        flushHandles = false;
-    }
     emit awake();
     QCoreApplication::sendPostedEvents();
     QWindowSystemInterface::sendWindowSystemEvents(flags);
@@ -130,8 +126,8 @@ int EventDispatcherLibUv::remainingTime(int timerId)
 
 void EventDispatcherLibUv::setFinalise()
 {
+    flushUvHandles();
     finalise = true;
-    flushHandles = true;
 }
 
 

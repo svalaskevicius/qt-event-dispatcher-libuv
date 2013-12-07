@@ -156,7 +156,7 @@ TEST_CASE("libuv based event dispatcher finalisation for qt GUI app") {
         using namespace std::chrono;
         steady_clock::time_point started = steady_clock::now();
         ev_dispatcher->setFinalise();
-        app.exec();
+        QCoreApplication::exec();
         REQUIRE (duration_cast<seconds>(steady_clock::now()-started).count() < 1);
     }
 }
