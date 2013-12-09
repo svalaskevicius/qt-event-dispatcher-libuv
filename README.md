@@ -13,9 +13,9 @@ Please see `tests/features`, `tests/spec/` and `src/runner/` subprojects in qtjs
 DEPENDENCIES
 ------------
 
-C++11
-Qt 5.2
-[Catch](http://github.com/philsquared/Catch) and [Turtle](http://turtle.sourceforge.net/) for development
+* C++11
+* Qt 5.2
+* [Catch](http://github.com/philsquared/Catch) and [Turtle](http://turtle.sourceforge.net/) for development
 
 
 LICENSE
