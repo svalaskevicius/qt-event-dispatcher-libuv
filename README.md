@@ -10,6 +10,14 @@ as a submodule and are sharing its build setup.
 
 Please see `tests/features`, `tests/spec/` and `src/runner/` subprojects in qtjs-generator for the example build configurations.
 
+DEPENDENCIES
+------------
+
+C++11
+Qt 5.2
+[Catch](http://github.com/philsquared/Catch) and [Turtle](http://turtle.sourceforge.net/) for development
+
+
 LICENSE
 -------
 
