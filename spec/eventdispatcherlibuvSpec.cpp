@@ -33,6 +33,7 @@ struct PollMocker {
     MockedLibuvApi *api;
 
     PollMocker(MockedLibuvApi *api);
+    ~PollMocker();
     void mockInit(int fd);
     void mockStart(int type);
     void mockInitAndExecute(int fd, int type);
@@ -50,6 +51,7 @@ struct AsyncMocker {
     MockedLibuvApi *api;
 
     AsyncMocker(MockedLibuvApi *api);
+    ~AsyncMocker();
     void mockInit();
     void mockClose();
     void mockAsyncSend();
@@ -63,6 +65,7 @@ struct TimerMocker {
     MockedLibuvApi *api;
 
     TimerMocker(MockedLibuvApi *api);
+    ~TimerMocker();
     void mockInit();
     void mockStart(uint64_t timeout);
     void mockImplicitStopClose();
@@ -475,6 +478,14 @@ PollMocker::PollMocker(MockedLibuvApi *api)
 {
 }
 
+PollMocker::~PollMocker()
+{
+    if (registeredHandle) {
+        delete (qtjs::SocketCallbacks *)registeredHandle->data;
+        delete registeredHandle;
+    }
+}
+
 void PollMocker::mockInit(int fd)
 {
     MOCK_EXPECT( api->uv_poll_init ).once()
@@ -552,9 +563,18 @@ void PollMocker::verifyAndReset()
 
 
 
-AsyncMocker::AsyncMocker(MockedLibuvApi *api) : checkClose(false), checkAsync(false), api(api)
+AsyncMocker::AsyncMocker(MockedLibuvApi *api)
+    : checkClose(false), checkAsync(false), api(api)
 {
 }
+
+AsyncMocker::~AsyncMocker()
+{
+    if (registeredHandle) {
+        delete registeredHandle;
+    }
+}
+
 void AsyncMocker::mockInit()
 {
     MOCK_EXPECT(api->uv_async_init).once()
@@ -596,9 +616,19 @@ void AsyncMocker::checkHandles()
 
 
 
-TimerMocker::TimerMocker(MockedLibuvApi *api) : checkStart(false), checkStop(false), checkClose(false), api(api)
+TimerMocker::TimerMocker(MockedLibuvApi *api)
+    : checkStart(false), checkStop(false), checkClose(false), api(api)
 {
 }
+
+TimerMocker::~TimerMocker()
+{
+    if (registeredHandle) {
+        delete (qtjs::TimerData *) registeredHandle->data;
+        delete registeredHandle;
+    }
+}
+
 void TimerMocker::mockInit()
 {
     MOCK_EXPECT( api->uv_timer_init ).once()
