@@ -15,7 +15,7 @@ extern uint qGlobalPostedEventsCount(); // from qapplication.cpp
 namespace
 {
 
-void flushUvHandles()
+void forgetCurrentUvHandles()
 {
     uv_walk(uv_default_loop(), [](uv_handle_t* handle, void* arg){
         if (uv_has_ref(handle)) {
@@ -126,7 +126,7 @@ int EventDispatcherLibUv::remainingTime(int timerId)
 
 void EventDispatcherLibUv::setFinalise()
 {
-    flushUvHandles();
+    forgetCurrentUvHandles();
     finalise = true;
 }
 
