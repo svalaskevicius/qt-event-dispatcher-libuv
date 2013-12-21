@@ -39,7 +39,14 @@ EventDispatcherLibUv::EventDispatcherLibUv(QObject *parent) :
 {
 }
 
-EventDispatcherLibUv::~EventDispatcherLibUv(void) {}
+EventDispatcherLibUv::~EventDispatcherLibUv(void)
+{
+    socketNotifier.reset();
+    timerNotifier.reset();
+    timerTracker.reset();
+    asyncChannel.reset();
+    uv_run(uv_default_loop(), UV_RUN_NOWAIT);
+}
 
 void EventDispatcherLibUv::wakeUp(void)
 {
