@@ -3,14 +3,12 @@
 
 #include <QTcpServer>
 #include <QTcpSocket>
-#include <QApplication>
 #include <QTimer>
 
 #include <chrono>
 #include <functional>
 #include <thread>
 
-#include "src/eventdispatcherlibuv.h"
 
 namespace {
 
@@ -33,12 +31,6 @@ public:
 
 TEST_CASE("libuv based event dispatcher") {
 
-    auto ev_dispatcher = new qtjs::EventDispatcherLibUv();
-    QCoreApplication::setEventDispatcher(ev_dispatcher);
-    int argc = 0;
-    char *argv[1] = {0};
-    QCoreApplication app(argc, argv, 0);
-
     SECTION("it dispatches QSocketNotifier events") {
 
         QTcpServer server;
@@ -48,7 +40,7 @@ TEST_CASE("libuv based event dispatcher") {
 
         launchServer(server);
         launchClient(client, processed, result, server.serverPort());
-        processAppEvents(app, processed, 1);
+        processAppEvents(*global.app, processed, 1);
 
         REQUIRE_THAT( result.constData(), Equals("test") );
     }
@@ -63,7 +55,7 @@ TEST_CASE("libuv based event dispatcher") {
             }
         });
         timer.start(2);
-        processAppEvents(app, processed, 1);
+        processAppEvents(*global.app, processed, 1);
 
         REQUIRE ( processed );
     }
@@ -79,21 +71,20 @@ TEST_CASE("libuv based event dispatcher") {
         });
         timer.setSingleShot(true);
         timer.start(0);
-        processAppEvents(app, processed, 1);
+        processAppEvents(*global.app, processed, 1);
         REQUIRE ( processed );
-        app.processEvents();
         REQUIRE ( count == 1 );
     }
 
     SECTION("it supports disconnect by QObject") {
         TimerTestObject obj;
         obj.startTimer(1);
-        processAppEvents(app, [&obj]{ return obj.clock >= 2;}, 1);
+        processAppEvents(*global.app, [&obj]{ return obj.clock >= 2;}, 1);
         uint64_t clock = obj.clock;
         REQUIRE ( clock >= 2 );
         QCoreApplication::instance()->eventDispatcher()->unregisterTimers(&obj);
         usleep(1500);
-        app.processEvents();
+        global.app->processEvents();
         REQUIRE ( clock == obj.clock );
     }
 
@@ -110,56 +101,39 @@ TEST_CASE("libuv based event dispatcher") {
 
     SECTION("it can be awoken from another thread") {
         QTcpServer server;
-        app.processEvents();
+        global.app->processEvents();
 
         launchServer(server);
-        std::thread alarm([&app]{
+        std::thread alarm([]{
             usleep(2000);
-            app.eventDispatcher()->wakeUp();
+            global.app->eventDispatcher()->wakeUp();
         });
-        app.processEvents();
+        global.app->processEvents();
         alarm.join();
     }
 
     SECTION("it can be interrupted from another thread") {
         QTcpServer server;
-        app.processEvents();
+        global.app->processEvents();
 
         launchServer(server);
-        std::thread alarm([&app]{
+        std::thread alarm([]{
             usleep(2000);
-            app.eventDispatcher()->interrupt();
+            global.app->eventDispatcher()->interrupt();
         });
-        app.processEvents();
+        global.app->processEvents();
         alarm.join();
     }
 
     SECTION("it supports finalising the app when libuv finishes") {
         using namespace std::chrono;
         steady_clock::time_point started = steady_clock::now();
-        ev_dispatcher->setFinalise();
-        app.exec();
+        global.ev_dispatcher->setFinalise();
+        global.app->exec();
         REQUIRE (duration_cast<seconds>(steady_clock::now()-started).count() < 1);
     }
 }
 
-
-TEST_CASE("libuv based event dispatcher finalisation for qt GUI app") {
-
-    auto ev_dispatcher = new qtjs::EventDispatcherLibUv();
-    QCoreApplication::setEventDispatcher(ev_dispatcher);
-    int argc = 0;
-    char *argv[1] = {0};
-    QApplication app(argc, argv, 0);
-
-    SECTION("it supports finalising the app when libuv finishes") {
-        using namespace std::chrono;
-        steady_clock::time_point started = steady_clock::now();
-        ev_dispatcher->setFinalise();
-        QCoreApplication::exec();
-        REQUIRE (duration_cast<seconds>(steady_clock::now()-started).count() < 1);
-    }
-}
 
 namespace {
 
