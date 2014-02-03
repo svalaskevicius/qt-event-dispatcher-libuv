@@ -2,6 +2,10 @@
 
 namespace qtjs {
 
+void _async_callback(uv_async_t* handle, int status)
+{
+
+}
 
 EventDispatcherLibUvAsyncChannel::EventDispatcherLibUvAsyncChannel(LibuvApi *api) : api(api), handle(nullptr)
 {
@@ -9,7 +13,7 @@ EventDispatcherLibUvAsyncChannel::EventDispatcherLibUvAsyncChannel(LibuvApi *api
         this->api.reset(new LibuvApi());
     }
     handle = new uv_async_t();
-    this->api->uv_async_init(uv_default_loop(), handle, nullptr);
+    this->api->uv_async_init(uv_default_loop(), handle, &_async_callback);
     this->api->uv_unref((uv_handle_t*)handle);
 }
 

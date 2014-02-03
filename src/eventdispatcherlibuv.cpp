@@ -18,9 +18,7 @@ namespace
 void forgetCurrentUvHandles()
 {
     uv_walk(uv_default_loop(), [](uv_handle_t* handle, void* arg){
-        if (uv_has_ref(handle)) {
-            uv_unref(handle);
-        }
+        uv_unref(handle);
     }, 0);
 }
 
