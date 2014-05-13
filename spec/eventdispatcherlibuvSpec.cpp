@@ -363,7 +363,7 @@ TEST_CASE("EventDispatcherLibUv supports QTimer registration")
         uv_timer_t request;
         request.data = &data;
 
-        qtjs::uv_timer_watcher(&request, 0);
+        qtjs::uv_timer_watcher(&request);
 
         REQUIRE( callbackInvoked == 1 );
     }
