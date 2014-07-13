@@ -8,7 +8,7 @@
 
 #include "eventdispatcherlibuv_p.h"
 
-#include <5.3.0/QtGui/qpa/qwindowsysteminterface.h>
+#include <QtGui/qpa/qwindowsysteminterface.h>
 
 extern uint qGlobalPostedEventsCount(); // from qapplication.cpp
 
