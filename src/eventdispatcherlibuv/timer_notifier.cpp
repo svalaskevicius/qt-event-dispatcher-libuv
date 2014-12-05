@@ -50,7 +50,7 @@ void EventDispatcherLibUvTimerNotifier::unregisterTimerWatcher(uv_timer_t *watch
 }
 
 
-void uv_timer_watcher(uv_timer_t* handle, int /* status */)
+void uv_timer_watcher(uv_timer_t* handle)
 {
     TimerData *data = (TimerData *) handle->data;
     if (data) {
