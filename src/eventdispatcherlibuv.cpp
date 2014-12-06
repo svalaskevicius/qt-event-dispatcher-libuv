@@ -8,7 +8,9 @@
 
 #include "eventdispatcherlibuv_p.h"
 
-#include <5.2.1/QtGui/qpa/qwindowsysteminterface.h>
+#include <QtGui/qpa/qwindowsysteminterface.h>
+#include <QtGui/private/qguiapplication_p.h>
+#include <QtGui/qpa/qplatformintegration.h>
 
 extern uint qGlobalPostedEventsCount(); // from qapplication.cpp
 
@@ -35,7 +37,8 @@ EventDispatcherLibUv::EventDispatcherLibUv(QObject *parent) :
     timerNotifier(new EventDispatcherLibUvTimerNotifier()),
     timerTracker(new EventDispatcherLibUvTimerTracker()),
     asyncChannel(new EventDispatcherLibUvAsyncChannel()),
-    finalise(false)
+    finalise(false),
+    osEventDispatcher(nullptr)
 {
 }
 
@@ -46,38 +49,61 @@ EventDispatcherLibUv::~EventDispatcherLibUv(void)
     timerTracker.reset();
     asyncChannel.reset();
     uv_run(uv_default_loop(), UV_RUN_NOWAIT);
+    if (osEventDispatcher) {
+        delete osEventDispatcher;
+    }
 }
 
 void EventDispatcherLibUv::wakeUp(void)
 {
+    if (osEventDispatcher) {
+        osEventDispatcher->wakeUp();
+    }
     asyncChannel->send();
 }
 
 void EventDispatcherLibUv::interrupt(void)
 {
+    if (osEventDispatcher) {
+        osEventDispatcher->interrupt();
+    }
     asyncChannel->send();
 }
 
 void EventDispatcherLibUv::flush(void)
 {
+    if (osEventDispatcher) {
+        osEventDispatcher->flush();
+    }
 }
 
 bool EventDispatcherLibUv::processEvents(QEventLoop::ProcessEventsFlags flags)
 {
-    emit awake();
+    if (osEventDispatcher) {
+        osEventDispatcher->processEvents(flags & ~QEventLoop::WaitForMoreEvents & ~QEventLoop::EventLoopExec);
+    } else {
+        emit awake();
+        QWindowSystemInterface::sendWindowSystemEvents(flags);
+    }
     QCoreApplication::sendPostedEvents();
-    QWindowSystemInterface::sendWindowSystemEvents(flags);
     emit aboutToBlock();
 
     int leftHandles = uv_run(uv_default_loop(), UV_RUN_ONCE);
-    if (!leftHandles && finalise) {
-        qApp->exit(0);
+    if (!leftHandles) {
+        if (osEventDispatcher) {
+            osEventDispatcher->processEvents(flags & ~QEventLoop::EventLoopExec | QEventLoop::WaitForMoreEvents);
+        } else if (finalise) {
+            qApp->exit(0);
+        }
     }
     return leftHandles;
 }
 
 bool EventDispatcherLibUv::hasPendingEvents(void)
 {
+    if (osEventDispatcher) {
+        return osEventDispatcher->hasPendingEvents() || qGlobalPostedEventsCount();
+    }
     return qGlobalPostedEventsCount();
 }
 
@@ -129,6 +155,22 @@ QList<QAbstractEventDispatcher::TimerInfo> EventDispatcherLibUv::registeredTimer
 int EventDispatcherLibUv::remainingTime(int timerId)
 {
     return timerTracker->remainingTime(timerId);
+}
+
+void EventDispatcherLibUv::startingUp() {
+    auto pi = QGuiApplicationPrivate::platformIntegration();
+    if (pi) {
+        osEventDispatcher = pi->createEventDispatcher();
+        if (osEventDispatcher) {
+            osEventDispatcher->startingUp();
+        }
+    }
+}
+
+void EventDispatcherLibUv::closingDown() {
+    if (osEventDispatcher) {
+        osEventDispatcher->closingDown();
+    }
 }
 
 void EventDispatcherLibUv::setFinalise()
