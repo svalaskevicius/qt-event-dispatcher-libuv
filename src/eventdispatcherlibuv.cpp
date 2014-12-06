@@ -49,7 +49,9 @@ EventDispatcherLibUv::~EventDispatcherLibUv(void)
     timerTracker.reset();
     asyncChannel.reset();
     uv_run(uv_default_loop(), UV_RUN_NOWAIT);
-    delete osEventDispatcher;
+    if (osEventDispatcher) {
+        delete osEventDispatcher;
+    }
 }
 
 void EventDispatcherLibUv::wakeUp(void)
@@ -77,20 +79,32 @@ void EventDispatcherLibUv::flush(void)
 
 bool EventDispatcherLibUv::processEvents(QEventLoop::ProcessEventsFlags flags)
 {
-    osEventDispatcher->processEvents(flags & ~QEventLoop::WaitForMoreEvents & ~QEventLoop::EventLoopExec);
+    if (osEventDispatcher) {
+        osEventDispatcher->processEvents(flags & ~QEventLoop::WaitForMoreEvents & ~QEventLoop::EventLoopExec);
+    } else {
+        emit awake();
+        QWindowSystemInterface::sendWindowSystemEvents(flags);
+    }
     QCoreApplication::sendPostedEvents();
     emit aboutToBlock();
 
     int leftHandles = uv_run(uv_default_loop(), UV_RUN_ONCE);
     if (!leftHandles) {
-        osEventDispatcher->processEvents(flags & ~QEventLoop::EventLoopExec | QEventLoop::WaitForMoreEvents);
+        if (osEventDispatcher) {
+            osEventDispatcher->processEvents(flags & ~QEventLoop::EventLoopExec | QEventLoop::WaitForMoreEvents);
+        } else if (finalise) {
+            qApp->exit(0);
+        }
     }
     return leftHandles;
 }
 
 bool EventDispatcherLibUv::hasPendingEvents(void)
 {
-    return osEventDispatcher->hasPendingEvents() || qGlobalPostedEventsCount();
+    if (osEventDispatcher) {
+        return osEventDispatcher->hasPendingEvents() || qGlobalPostedEventsCount();
+    }
+    return qGlobalPostedEventsCount();
 }
 
 void EventDispatcherLibUv::registerSocketNotifier(QSocketNotifier* notifier)
@@ -144,12 +158,19 @@ int EventDispatcherLibUv::remainingTime(int timerId)
 }
 
 void EventDispatcherLibUv::startingUp() {
-    osEventDispatcher = QGuiApplicationPrivate::platformIntegration()->createEventDispatcher();
-    osEventDispatcher->startingUp();
+    auto pi = QGuiApplicationPrivate::platformIntegration();
+    if (pi) {
+        osEventDispatcher = pi->createEventDispatcher();
+        if (osEventDispatcher) {
+            osEventDispatcher->startingUp();
+        }
+    }
 }
 
 void EventDispatcherLibUv::closingDown() {
-    osEventDispatcher->closingDown();
+    if (osEventDispatcher) {
+        osEventDispatcher->closingDown();
+    }
 }
 
 void EventDispatcherLibUv::setFinalise()
