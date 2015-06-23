@@ -21,5 +21,5 @@ DEPENDENCIES
 LICENSE
 -------
 
-[Latest LGPL](https://www.gnu.org/licenses/lgpl.html).
+[BSD 2-Clause License](http://opensource.org/licenses/BSD-2-Clause).
 
