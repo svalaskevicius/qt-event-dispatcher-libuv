@@ -111,7 +111,7 @@ public:
 private:
     void cleanTimerFromObject(int timerId, void *object);
     struct TimerInfo {
-        unsigned long lastFired;
+        uint64_t lastFired;
         int interval;
         void *object;
     };
