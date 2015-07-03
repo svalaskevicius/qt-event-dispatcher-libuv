@@ -52,10 +52,14 @@ int LibuvApi::uv_async_send(uv_async_t* async)
     return ::uv_async_send(async);
 }
 
+void LibuvApi::uv_ref(uv_handle_t* handle)
+{
+    ::uv_ref(handle);
+}
+
 void LibuvApi::uv_unref(uv_handle_t* handle)
 {
     ::uv_unref(handle);
 }
-
 
 }

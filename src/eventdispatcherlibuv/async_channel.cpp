@@ -17,17 +17,25 @@ EventDispatcherLibUvAsyncChannel::~EventDispatcherLibUvAsyncChannel()
 {
     api->uv_close((uv_handle_t *)handle, &uv_close_asyncHandle);
 }
+
+void EventDispatcherLibUvAsyncChannel::ref()
+{
+    api->uv_ref((uv_handle_t*)handle);
+}
+
+void EventDispatcherLibUvAsyncChannel::unref()
+{
+    api->uv_unref((uv_handle_t*)handle);
+}
+
 void EventDispatcherLibUvAsyncChannel::send()
 {
     api->uv_async_send(handle);
 }
 
-
-
 void uv_close_asyncHandle(uv_handle_t* handle)
 {
     delete (uv_async_t *)handle;
 }
-
 
 }
