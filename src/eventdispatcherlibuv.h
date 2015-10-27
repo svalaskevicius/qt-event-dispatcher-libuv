@@ -5,6 +5,11 @@
 #include <QMap>
 
 #include <memory>
+#ifdef Q_OS_WIN
+#include <windows.h>
+#include <mutex>
+#include <vector>
+#endif
 #include <time.h>
 
 
@@ -21,6 +26,20 @@ class EventDispatcherLibUv : public QAbstractEventDispatcher {
     std::unique_ptr<EventDispatcherLibUvTimerNotifier> timerNotifier;
     std::unique_ptr<EventDispatcherLibUvTimerTracker> timerTracker;
     std::unique_ptr<EventDispatcherLibUvAsyncChannel> asyncChannel;
+#ifdef Q_OS_WIN
+    struct WinEventNotifierInfo {
+        WinEventNotifierInfo(EventDispatcherLibUv* dispatcher, QWinEventNotifier* notifier)
+            : dispatcher(dispatcher), notifier(notifier) {}
+
+        EventDispatcherLibUv* dispatcher = nullptr;
+        QWinEventNotifier* notifier = nullptr;
+        HANDLE waitHandle = INVALID_HANDLE_VALUE;
+    };
+    std::mutex winEventActQueueMutex;
+    std::vector<WinEventNotifierInfo*> winEventActQueue;
+    std::vector<std::unique_ptr<WinEventNotifierInfo>> winEventNotifierList;
+#endif
+
 public:
     explicit EventDispatcherLibUv(QObject* parent = 0);
     virtual ~EventDispatcherLibUv(void);
@@ -41,11 +60,22 @@ public:
     virtual QList<QAbstractEventDispatcher::TimerInfo> registeredTimers(QObject* object) const;
     virtual int remainingTime(int timerId);
 
+#ifdef Q_OS_WIN
+    virtual bool registerEventNotifier(QWinEventNotifier *notifier);
+    virtual void unregisterEventNotifier(QWinEventNotifier *notifier);
+#endif
+
     virtual void startingUp();
     virtual void closingDown();
 
     void setFinalise();
+
 private:
+#ifdef Q_OS_WIN
+    void activateEventNotifiers();
+    void queueEventNotifierActivation(WinEventNotifierInfo* weni);
+    static void CALLBACK queueEventNotifierActivation(PVOID context, BOOLEAN timedOut);
+#endif
     bool finalise;
     QAbstractEventDispatcher *osEventDispatcher;
 
