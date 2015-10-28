@@ -1,10 +1,12 @@
 project(qt-event-dispatcher-libuv)
 cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 
-add_definitions(
-  -DNOMINMAX
-  -DWIN32_LEAN_AND_MEAN
-)
+if(MSVC)
+  add_definitions(
+    -DNOMINMAX
+    -DWIN32_LEAN_AND_MEAN
+  )
+endif()
 
 set(CMAKE_MODULE_PATH
   ${CMAKE_MODULE_PATH}
